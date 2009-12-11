@@ -87,7 +87,7 @@ class Converter
 			WriteMIntro($3, $2)
 			puts "\n\nCreating message: #{$3}\n\n"
 			@ran_once = false
-		elsif(line.match(/[A-Z_]+\s([a-zA-Z]+)\s:\s([0-9]+)\|([0-9]+)\@([01])([+-])\s\(([0-9.]+),([0-9.]+)\)\s\[([0-9])\|([0-9])\]\s"(.*)"\s[a-zA-Z_]+/) != nil)
+		elsif(line.match(/[A-Z_]+\s([a-zA-Z]+)\s:\s([0-9]+)\|([0-9]+)\@([01])([+-])\s\(([0-9.]+),([0-9.]+)\)\s\[([0-9.]+)\|([0-9.]+)\]\s"(.*)"\s[\sa-zA-Z_]+/) != nil)
 			
 			# This line is a signal line
 			valuea = $2.to_i
