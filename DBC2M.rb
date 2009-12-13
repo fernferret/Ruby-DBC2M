@@ -109,7 +109,7 @@ class Converter
 			puts "\n\nCreating message: #{$3}\n\n"
 			@ran_once = false
 		# RegEX to capture Signal Lines
-		elsif(line.match(/[A-Z_]+\s([a-zA-Z]+)\s:\s([0-9]+)\|([0-9]+)\@([01])([+-])\s\(([0-9.Ee-]+),([0-9.Ee-]+)\)\s\[([0-9.Ee-]+)\|([0-9.Ee-]+)\]\s"(.*)"\s[\sa-zA-Z_]+/) != nil)
+		elsif(line.match(/[A-Z_]+\s(.*)\s:\s([0-9]+)\|([0-9]+)\@([01])([+-])\s\(([0-9.Ee-]+),([0-9.Ee-]+)\)\s\[([0-9.Ee-]+)\|([0-9.Ee-]+)\]\s"(.*)"\s(.*)/) != nil)
 			
 			# This line is a signal line
 			startbit = $2.to_i
@@ -121,7 +121,8 @@ class Converter
 			
 			# Unsigned = +
 			# Signed   = -
-			if $5.to_c == '+'
+			
+			if $5 == "+"
 				datatype = "UNSIGNED"
 			else
 				datatype = "SIGNED"
@@ -133,6 +134,8 @@ class Converter
 			# Motorola = BIG_ENDIAN
 			byteorder = "LITTLE_ENDIAN"
 			# If Motorola
+			# Special Case for 1 Bit signals
+			byteorder = "BIG_ENDIAN" if mot_intel == 0 and bitlength == 1
 			if mot_intel == 0 and bitlength != 1
 				# -- Moved to cSB2BE: offset = (valuea/8)*8
 				# TODO: Document This Equation
@@ -140,11 +143,7 @@ class Converter
 				byteorder = "BIG_ENDIAN"
 			end
 			
-			# If this is a motorola signal AND bit lengh == 1,
-			# We need to set to big endian
-			byteorder = "BIG_ENDIAN" if mot_intel == 0 and bitlength == 1
-			
-			puts "#{$1} (Start Bit: #{startbit}; Length: #{bitlength})"
+			puts "#{$1} (Start Bit: #{startbit}; Length: #{bitlength}; Type: #{datatype})"
 			factor = $6.to_f
 			offset = $7.to_f
 			min = $8.to_f
@@ -158,14 +157,15 @@ class Converter
 	# Convert the start bit to big endian format for motorola signals
 	def convertStartBit2BE(valuea, valueb)
 		offset = (valuea/8)*8
-		#startbit = (valuea+valueb-2*(valuea-offset+1)+1).abs
 		return (valuea+valueb-2*(valuea-offset+1)+1).abs
 	end
 end
 
 if __FILE__ == $0
 	convert = Converter.new
-	if ARGV[1] == nil
+	if ARGV[0].upcase == "HELP"
+		
+	elsif ARGV[1] == nil
 		puts "Wrong number of arguments, should be 2!"
 	elsif ARGV[0].upcase == "M"
 		convert.convertDBC2M(ARGV[1])
