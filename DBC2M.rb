@@ -24,7 +24,32 @@ class Converter
 			input.each{|line| ParseLine(line)}
 		else
 			puts "Can't open #{infile}.dbc! Exiting..."
+			return
 		end
+	end
+	
+	def convertM2DBC(infile)
+		puts "#######################"
+		puts "#                     #"
+		puts "# Not Yet Implmented! #"
+		puts "#                     #"
+		puts "#######################"
+		# puts "\nInput file set to: \"#{infile}.m\""
+		# if !Dir.exists?("#{infile}")
+		# 	FileUtils.mkdir "#{infile}"
+		# 	puts "I Created the Directory #{infile}!"
+		# else
+		# 	puts "The Directory #{infile} already exists!"
+		# end
+		
+		# if File.exists?("#{infile}.m")
+		# 	input = File.open("#{infile}.m", "r")
+		# 	puts "I opened #{infile}.m Successfully!\n"
+		# 	FileUtils.cd "#{infile}"
+		# 	input.each{|line| ParseLine(line)}
+		# else
+		# 	puts "Can't open #{infile}.m! Exiting..."
+		# end
 	end
 	
 	def WriteMIntro(msgname, msgid)
@@ -70,10 +95,6 @@ class Converter
 	
 	def ParseLine(line)
 		# RegEX to capture Message lines
-		# ([A-Z_]+)\s([0-9]+)\s([a-zA-Z_]+):\s([0-9])\s([a-zA-Z_]+)
-		#
-		# RegEX to capture  Lines
-		# ([A-Z_]+)\s([a-zA-Z]+)\s:\s([0-9]+)\|([0-9])\@0([+-])\s\(([0-9.]+),([0-9.]+)\)\s\[([0-9])\|([0-9])\]\s""\s([a-zA-Z_]+)
 		if(line.match(/([A-Z_]+)\s([0-9]+)\s([a-zA-Z_0-9]+):\s([0-9])\s([a-zA-Z_]+)/) != nil)
 			# This line is a message line
 			@output.puts "\n\n%% end-of-file." if @output
@@ -87,11 +108,12 @@ class Converter
 			WriteMIntro($3, $2)
 			puts "\n\nCreating message: #{$3}\n\n"
 			@ran_once = false
+		# RegEX to capture Signal Lines
 		elsif(line.match(/[A-Z_]+\s([a-zA-Z]+)\s:\s([0-9]+)\|([0-9]+)\@([01])([+-])\s\(([0-9.Ee-]+),([0-9.Ee-]+)\)\s\[([0-9.Ee-]+)\|([0-9.Ee-]+)\]\s"(.*)"\s[\sa-zA-Z_]+/) != nil)
 			
 			# This line is a signal line
-			valuea = $2.to_i
-			valueb = $3.to_i
+			startbit = $2.to_i
+			bitlength = $3.to_i
 			
 			# Motorola = 0
 			# Intel    = 1
@@ -105,18 +127,23 @@ class Converter
 				datatype = "SIGNED"
 			end
 			
-			startbit = valuea
-			bitlength = valueb
+			# Not Needed: startbit = valuea
+			# Not Needed: bitlength = valueb
 			# Intel    = LITTLE_ENDIAN
 			# Motorola = BIG_ENDIAN
 			byteorder = "LITTLE_ENDIAN"
 			# If Motorola
 			if mot_intel == 0 and bitlength != 1
-				offset = (valuea/8)*8
+				# -- Moved to cSB2BE: offset = (valuea/8)*8
 				# TODO: Document This Equation
-				startbit = (valuea+valueb-2*(valuea-offset+1)+1).abs
+				startbit = convertStartBit2BE(startbit, bitlength)
 				byteorder = "BIG_ENDIAN"
 			end
+			
+			# If this is a motorola signal AND bit lengh == 1,
+			# We need to set to big endian
+			byteorder = "BIG_ENDIAN" if mot_intel == 0 and bitlength == 1
+			
 			puts "#{$1} (Start Bit: #{startbit}; Length: #{bitlength})"
 			factor = $6.to_f
 			offset = $7.to_f
@@ -127,9 +154,24 @@ class Converter
 			WriteMSignal($1, $10, startbit, bitlength, byteorder, datatype, factor, offset, min, max)
 		end
 	end
+	
+	# Convert the start bit to big endian format for motorola signals
+	def convertStartBit2BE(valuea, valueb)
+		offset = (valuea/8)*8
+		#startbit = (valuea+valueb-2*(valuea-offset+1)+1).abs
+		return (valuea+valueb-2*(valuea-offset+1)+1).abs
+	end
 end
 
 if __FILE__ == $0
 	convert = Converter.new
-	convert.convertDBC2M(ARGV[0])
+	if ARGV[1] == nil
+		puts "Wrong number of arguments, should be 2!"
+	elsif ARGV[0].upcase == "M"
+		convert.convertDBC2M(ARGV[1])
+	elsif ARGV[0].upcase == "DBC"
+		convert.convertM2DBC(ARGV[1])
+	else
+		puts "Input Error, please check your args"
+	end
 end
