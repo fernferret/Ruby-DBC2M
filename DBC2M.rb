@@ -8,7 +8,7 @@ class Converter
 		@output = nil
 	end
 	
-	def convertDBC2M(infile)
+	def convert_dbc2m (infile)
 		puts "\nInput file set to: \"#{infile}.dbc\""
 		if !Dir.exists?("#{infile}")
 			FileUtils.mkdir "#{infile}"
@@ -52,7 +52,7 @@ class Converter
 		# end
 	end
 	
-	def WriteMIntro(msgname, msgid)
+	def WriteMIntro(msgname, msgid, pl_size)
 		file = @output
 		file.puts "function msg = #{msgname}()\n"
 		file.puts "Broadcast = 20;\n"
@@ -66,7 +66,7 @@ class Converter
 		file.puts "  msg.id                      = #{msgid};"
 		file.puts "  msg.idmask                  = hex2dec('ffffffff');"
 		file.puts "  msg.idinherit               =  0;"
-		file.puts "  msg.payload_size            =  8;"
+		file.puts "  msg.payload_size            =  #{pl_size};"
 		file.puts "  msg.payload_value           = [];"
 		file.puts "  msg.payload_mask            = [];"
 		file.puts "  msg.interval                = Broadcast;"
@@ -105,7 +105,7 @@ class Converter
 				puts "#{$3}.m already exists! Opening to overwrite!"
 				@output = File.open("#{$3}.m", "w")
 			end	
-			WriteMIntro($3, $2)
+			WriteMIntro($3, $2, $4)
 			puts "\n\nCreating message: #{$3}\n\n"
 			@ran_once = false
 		# RegEX to capture Signal Lines
@@ -141,6 +141,9 @@ class Converter
 				# TODO: Document This Equation
 				startbit = convertStartBit2BE(startbit, bitlength)
 				byteorder = "BIG_ENDIAN"
+				
+				# Trying to fix the bit offsets:
+				startbit = fixBitOffset(startbit)
 			end
 			
 			puts "#{$1} (Start Bit: #{startbit}; Length: #{bitlength}; Type: #{datatype})"
@@ -159,6 +162,12 @@ class Converter
 		offset = (valuea/8)*8
 		return (valuea+valueb-2*(valuea-offset+1)+1).abs
 	end
+	
+	def fixBitOffset(messedUpBit)
+		bitOffset = 
+		[56,57,58,59,60,61,62,63,48,49,50,51,52,53,54,55,40,41,42,43,44,45,46,47,32,33,34,35,36,37,38,39,24,25,26,27,28,29,30,31,16,17,18,19,20,21,22,23,8,9,10,11,12,13,14,15,0,1,2,3,4,5,6,7]
+		return bitOffset[messedUpBit]
+	end
 end
 
 if __FILE__ == $0
@@ -168,7 +177,7 @@ if __FILE__ == $0
 	elsif ARGV[1] == nil
 		puts "Wrong number of arguments, should be 2!"
 	elsif ARGV[0].upcase == "M"
-		convert.convertDBC2M(ARGV[1])
+		convert.convert_dbc2m(ARGV[1])
 	elsif ARGV[0].upcase == "DBC"
 		convert.convertM2DBC(ARGV[1])
 	else
